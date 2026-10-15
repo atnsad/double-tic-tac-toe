@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>سوپر دوز مرحله‌ای — نسخه موبایل و وب</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#070514; --bg2:#130b2b;
+  --x:#ff2a5f; --o:#00eaff; --gold:#ffe600;
+  --panel:rgba(255,255,255,.05); --line:rgba(255,255,255,.1);
+  --winx:rgba(255,42,95,.14); --wino:rgba(0,234,255,.14);
+}
+*{box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent;}
+body{
+  margin:0; font-family:'Vazirmatn',sans-serif; color:#f3f3f3;
+  background:radial-gradient(circle at top center,#1b1040 0%,var(--bg1) 55%),linear-gradient(135deg,var(--bg1),var(--bg2));
+  min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:8px 8px 24px;
+}
+h1{font-size:1.35rem; font-weight:900; margin:4px 0 8px;
+  background:linear-gradient(90deg,var(--x),var(--o));
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+
+.bar{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-items:center;
+  background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  padding:8px 10px; margin-bottom:8px; width:min(100%,860px); backdrop-filter:blur(8px);}
+.chip{padding:4px 10px; border-radius:999px; font-size:.8rem; font-weight:700; white-space:nowrap;}
+.chip.x{color:var(--x); border:1px solid rgba(255,42,95,.4); background:rgba(255,42,95,.08);}
+.chip.o{color:var(--o); border:1px solid rgba(0,234,255,.4); background:rgba(0,234,255,.08);}
+.chip.n{color:#ddd; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.04);}
+#status{font-size:.9rem; font-weight:700; text-align:center; min-height:24px; margin-bottom:6px; padding:0 4px;}
+
+label.inline{display:flex; align-items:center; gap:4px; font-size:.78rem; color:#bbb; font-weight:700;}
+select, input[type="range"]{background:rgba(255,255,255,.07); color:#eee; border:1px solid var(--line);
+  border-radius:8px; padding:4px 6px; font-family:inherit; font-weight:700; outline:none;}
+button{border:none; border-radius:10px; padding:7px 12px; cursor:pointer; color:#fff;
+  font-family:inherit; font-weight:800; background:linear-gradient(135deg,#7a28cb,#ff0088); transition:.15s; touch-action:manipulation;}
+button:active{transform:scale(.96);}
+button.sec{background:linear-gradient(135deg,#006eff,#00d9ff);}
+
+#board{width:min(94vmin,700px); aspect-ratio:1; display:grid;
+  grid-template-columns:repeat(3,1fr); gap:8px; position:relative; touch-action:manipulation;}
+#board.shake{animation:shake .35s;}
+@keyframes shake{
+  0%,100%{transform:translate(0)}
+  15%{transform:translate(-6px,3px) rotate(-.5deg)}
+  35%{transform:translate(5px,-4px) rotate(.5deg)}
+  55%{transform:translate(-4px,2px)}
+  75%{transform:translate(3px,-2px)}
+}
+.macro{position:relative; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+  gap:4px; padding:4px; border-radius:12px; background:rgba(255,255,255,.03);
+  border:2px solid rgba(255,255,255,.08); transition:.2s; overflow:hidden;}
+.macro.selectable{border-color:var(--gold); box-shadow:0 0 16px rgba(255,230,0,.3);
+  animation:pulse 1s infinite;}
+.macro.playing{border-color:#fff; box-shadow:0 0 16px rgba(255,255,255,.14);}
+.macro.won-x{background:var(--winx); border-color:var(--x);}
+.macro.won-o{background:var(--wino); border-color:var(--o);}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+/* لایه اختصاصی تاچ برای انتخاب خانه بزرگ در موبایل و دسکتاپ */
+.macro-hitbox{
+  position:absolute; inset:0; z-index:9; background:transparent;
+  cursor:pointer; display:none; touch-action:manipulation;
+}
+.macro.selectable .macro-hitbox{display:block;}
+
+.cell{position:relative; border:none; border-radius:6px; background:rgba(255,255,255,.05);
+  display:flex; align-items:center; justify-content:center; cursor:default; transition:.15s;
+  min-width:0; min-height:0; padding:0; touch-action:manipulation;}
+.cell.playable{background:rgba(255,255,255,.1); cursor:pointer;}
+.cell.playable:active{background:rgba(255,255,255,.2); transform:scale(.95);}
+.cell svg{width:70%; height:70%; display:block; pointer-events:none;}
+.cell.pop svg{animation:pop .2s ease-out;}
+@keyframes pop{0%{transform:scale(.2)}100%{transform:scale(1)}}
+svg.mark-x{stroke:var(--x); filter:drop-shadow(0 0 5px rgba(255,42,95,.6));}
+svg.mark-o{stroke:var(--o); filter:drop-shadow(0 0 5px rgba(0,234,255,.6));}
+
+.bigmark{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; opacity:.13;}
+.bigmark svg{width:70%; height:70%;}
+.macro.won-x .bigmark svg.mark-x{filter:drop-shadow(0 0 16px rgba(255,42,95,.9));}
+.macro.won-o .bigmark svg.mark-o{filter:drop-shadow(0 0 16px rgba(0,234,255,.9));}
+.stamp{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:5; animation:stamp .4s cubic-bezier(.2,1.4,.4,1);}
+.stamp svg{width:60%; height:60%;}
+@keyframes stamp{0%{opacity:0; transform:scale(2.5) rotate(16deg)}
+  70%{transform:scale(.92) rotate(-3deg)}100%{opacity:1; transform:scale(1)}}
+
+.hint{color:#999; font-size:.78rem; text-align:center; margin-top:10px; line-height:1.8; width:min(100%,860px);}
+#overlay{position:fixed; inset:0; background:rgba(8,4,20,.85); backdrop-filter:blur(10px);
+  display:none; align-items:center; justify-content:center; z-index:20; padding:16px;}
+.dialog{width:min(90vw,420px); background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15);
+  border-radius:18px; padding:20px; text-align:center;}
+.dialog h2{margin:0 0 10px; font-size:1.5rem; font-weight:900;}
+</style>
+</head>
+<body>
+<h1>سوپر دوز مرحله‌ای</h1>
+
+<div class="bar">
+  <div class="chip x">قرمز: <span id="scX">0</span></div>
+  <div class="chip n">مساوی مینی‌بورد: <span id="scRD">0</span></div>
+  <div class="chip o">آبی: <span id="scO">0</span></div>
+  <label class="inline">قرمز:
+    <select id="modeX"><option value="human" selected>انسان</option><option value="ai">ربات</option></select>
+  </label>
+  <label class="inline">آبی:
+    <select id="modeO"><option value="human">انسان</option><option value="ai" selected>ربات</option></select>
+  </label>
+  <label class="inline">هوش قرمز:
+    <select id="depthX"><option value="1">آسان</option><option value="3">متوسط</option><option value="5" selected>سخت</option><option value="7">دیوانه</option></select>
+  </label>
+  <label class="inline">هوش آبی:
+    <select id="depthO"><option value="1">آسان</option><option value="3" selected>متوسط</option><option value="5">سخت</option><option value="7">دیوانه</option></select>
+  </label>
+  <label class="inline">سرعت:
+    <input id="speed" type="range" min="1" max="20" step="1" value="10">
+  </label>
+  <button id="stepBtn" class="sec">⏭ حرکت</button>
+  <button id="resetBtn">🔄 ریست</button>
+</div>
+
+<div id="status"></div>
+<div id="board"></div>
+
+<div class="hint">
+  برای شروع نوبت، هر جای خانه‌ی بزرگ دلخواه را لمس کنید تا انتخاب شود.
+</div>
+
+<div id="overlay"><div class="dialog"><h2 id="ovTitle"></h2><p id="ovText"></p><button onclick="document.getElementById('overlay').style.display='none'">بستن</button></div></div>
+
+<script>
+const X=1, O=2;
+const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+let macro, cells, currentPlayer, chooserPlayer, phase, activeMacro, miniFirst;
+let score={x:0,o:0,rd:0};
+let aiTimer=null, thinking=false;
+
+const boardEl=document.getElementById('board');
+const statusEl=document.getElementById('status');
+
+function markSVG(p){
+  if(p===X)
+    return `<svg class="mark-x" viewBox="0 0 100 100"><path d="M18 18 L82 82 M82 18 L18 82" stroke-width="14" stroke-linecap="round" fill="none"/></svg>`;
+  return `<svg class="mark-o" viewBox="0 0 100 100"><circle cx="50" cy="50" r="32" stroke-width="14" fill="none"/></svg>`;
+}
+
+function winnerOf(b){for(const [a,c,d] of LINES) if(b[a]>0&&b[a]===b[c]&&b[a]===b[d]) return {p:b[a],line:[a,c,d]}; return null;}
+function isFull(b){return b.every(v=>v!==0);}
+function macroWinner(){return winnerOf(macro.map(v=>v>0?v:0));}
+function nameOf(p){return p===X?'قرمز':'آبی';}
+
+function newGame(){
+  clearTimeout(aiTimer); thinking=false;
+  macro=Array(9).fill(0);
+  cells=Array.from({length:9},()=>Array(9).fill(0));
+  chooserPlayer=X; currentPlayer=O; phase='chooseMacro'; activeMacro=-1;
+  document.getElementById('overlay').style.display='none';
+  buildBoard(); render(); scheduleAI();
+}
+
+function buildBoard(){
+  boardEl.innerHTML='';
+  for(let m=0;m<9;m++){
+    const md=document.createElement('div');
+    md.className='macro'; md.dataset.macro=m;
+
+    for(let c=0;c<9;c++){
+      const cd=document.createElement('div'); cd.className='cell';
+      cd.dataset.macro=m; cd.dataset.cell=c;
+      // استفاده از pointerup برای بدون لگ بودن روی موبایل
+      cd.addEventListener('pointerup', onCellPointerUp);
+      md.appendChild(cd);
+    }
+
+    // لایه اختصاصی و شفاف روی کل صفحه بزرگ جهت دریافت قطعی لمس در موبایل
+    const hb=document.createElement('div');
+    hb.className='macro-hitbox';
+    hb.dataset.macro=m;
+    hb.addEventListener('pointerup', onHitboxPointerUp);
+    md.appendChild(hb);
+
+    boardEl.appendChild(md);
+  }
+}
+
+function render(){
+  for(let m=0;m<9;m++){
+    const md=boardEl.children[m];
+    const isSelectable = (phase==='chooseMacro' && macro[m]===0);
+    md.classList.toggle('selectable', isSelectable);
+    md.classList.toggle('playing', activeMacro===m && macro[m]===0 && (phase==='firstCell'||phase==='playBoard'));
+
+    md.querySelectorAll('.cell').forEach((cd,c)=>{
+      const v=cells[m][c];
+      cd.innerHTML=v?markSVG(v):'';
+      const isPlayable = (activeMacro===m && macro[m]===0 && !v && (phase==='firstCell'||phase==='playBoard'));
+      cd.classList.toggle('playable', isPlayable);
+    });
+  }
+  updateStatus();
+}
+
+function updateStatus(){
+  if(phase==='chooseMacro')
+    statusEl.textContent=`نوبت ${nameOf(chooserPlayer)} (${isAI(chooserPlayer)?'ربات':'انسان'}) — یک خانه‌ی بزرگ را لمس کنید`;
+  else if(phase==='firstCell')
+    statusEl.textContent=`${nameOf(currentPlayer)} اولین حرکت را داخل خانه‌ی بزرگ ${activeMacro+1} می‌زند`;
+  else if(phase==='playBoard')
+    statusEl.textContent=`نوبت ${nameOf(currentPlayer)} داخل خانه‌ی بزرگ ${activeMacro+1}`;
+  else statusEl.textContent='بازی تمام شد';
+}
+
+function onHitboxPointerUp(e){
+  e.preventDefault();
+  if(phase!=='chooseMacro'||thinking) return;
+  if(isAI(chooserPlayer)) return;
+  const m=+e.currentTarget.dataset.macro;
+  if(macro[m]!==0) return;
+  chooseMacro(m);
+}
+
+function onCellPointerUp(e){
+  if(phase!=='firstCell'&&phase!=='playBoard') return;
+  if(thinking) return;
+  if(isAI(currentPlayer)) return;
+
+  const m=+e.currentTarget.dataset.macro, c=+e.currentTarget.dataset.cell;
+  if(m!==activeMacro||cells[m][c]!==0) return;
+  makeMove(m,c);
+}
+
+function chooseMacro(m){
+  activeMacro=m;
+  currentPlayer=(chooserPlayer===X)?O:X;
+  miniFirst=currentPlayer;
+  phase='firstCell';
+  render(); scheduleAI();
+}
+
+function makeMove(m,c){
+  cells[m][c]=currentPlayer;
+  const cd=boardEl.children[m].querySelectorAll('.cell')[c];
+  cd.innerHTML=markSVG(currentPlayer);
+  cd.classList.add('pop');
+  soundPlace(currentPlayer);
+  render();
+
+  const w=winnerOf(cells[m]);
+  if(w){ finishMacro(m,w); return; }
+  if(isFull(cells[m])){ restartDrawnMini(m); return; }
+
+  if(phase==='firstCell') phase='playBoard';
+  currentPlayer=(currentPlayer===X)?O:X;
+  render(); scheduleAI();
+}
+
+function finishMacro(m,w){
+  macro[m]=w.p;
+  const md=boardEl.children[m];
+  const st=document.createElement('div');
+  st.className='stamp'; st.innerHTML=markSVG(w.p);
+  md.appendChild(st);
+  const bm=document.createElement('div');
+  bm.className='bigmark'; bm.innerHTML=markSVG(w.p);
+  md.appendChild(bm);
+
+  soundSlam();
+  boardEl.classList.add('shake');
+  setTimeout(()=>boardEl.classList.remove('shake'),380);
+
+  const mw=macroWinner();
+  if(mw){ endGame(mw); return; }
+
+  phase='chooseMacro'; activeMacro=-1;
+  chooserPlayer=(chooserPlayer===X)?O:X;
+  render(); scheduleAI();
+}
+
+function restartDrawnMini(m){
+  score.rd++;
+  document.getElementById('scRD').textContent=score.rd;
+  cells[m]=Array(9).fill(0);
+  miniFirst=(miniFirst===X)?O:X;
+  currentPlayer=miniFirst;
+  phase='playBoard';
+  render(); scheduleAI();
+}
+
+function endGame(w){
+  phase='gameOver';
+  if(w.p===X) score.x++; else score.o++;
+  document.getElementById('scX').textContent=score.x;
+  document.getElementById('scO').textContent=score.o;
+  document.getElementById('ovTitle').textContent=
+    w.p===X?'🏆 قرمز برنده شد!':'🏆 آبی برنده شد!';
+  document.getElementById('ovTitle').style.color=w.p===X?'var(--x)':'var(--o)';
+  document.getElementById('ovText').textContent='سه خانه‌ی بزرگ پشت‌سرهم در صفحه‌ی بزرگ کامل شد.';
+  document.getElementById('overlay').style.display='flex';
+  soundWin();
+}
+
+/* ---------- هوش مصنوعی ---------- */
+function clone(s){
+  return {macro:s.macro.slice(), cells:s.cells.map(b=>b.slice()),
+    currentPlayer:s.currentPlayer, chooserPlayer:s.chooserPlayer,
+    phase:s.phase, activeMacro:s.activeMacro, miniFirst:s.miniFirst};
+}
+function legalActions(s){
+  if(s.phase==='chooseMacro')
+    return s.macro.map((v,i)=>v===0?{t:'M',m:i}:null).filter(Boolean);
+  if(s.phase==='firstCell'||s.phase==='playBoard')
+    return s.cells[s.activeMacro].map((v,i)=>v===0?{t:'C',m:s.activeMacro,c:i}:null).filter(Boolean);
+  return [];
+}
+function simWin(b){for(const [a,c,d] of LINES) if(b[a]>0&&b[a]===b[c]&&b[a]===b[d]) return b[a]; return 0;}
+function apply(s,a){
+  const n=clone(s);
+  if(a.t==='M'){
+    n.activeMacro=a.m;
+    n.currentPlayer=(n.chooserPlayer===X)?O:X;
+    n.miniFirst=n.currentPlayer;
+    n.phase='firstCell';
+    return n;
+  }
+  const m=a.m,c=a.c;
+  n.cells[m][c]=n.currentPlayer;
+  if(simWin(n.cells[m])){
+    n.macro[m]=n.currentPlayer;
+    const mw=simWin(n.macro.map(v=>v>0?v:0));
+    if(mw){ n.phase='gameOver'; return n; }
+    n.activeMacro=-1;
+    n.chooserPlayer=(n.chooserPlayer===X)?O:X;
+    n.currentPlayer=(n.chooserPlayer===X)?O:X;
+    n.phase='chooseMacro';
+    return n;
+  }
+  if(n.cells[m].every(v=>v!==0)){
+    n.cells[m]=Array(9).fill(0);
+    n.miniFirst=(n.miniFirst===X)?O:X;
+    n.currentPlayer=n.miniFirst;
+    n.phase='playBoard';
+    return n;
+  }
+  if(n.phase==='firstCell') n.phase='playBoard';
+  n.currentPlayer=(n.currentPlayer===X)?O:X;
+  return n;
+}
+function evalMini(b,me){
+  const opp=me===X?O:X, w=simWin(b);
+  if(w===me) return 120; if(w===opp) return -120;
+  if(b.every(v=>v!==0)) return 0;
+  let s=0;
+  for(const [a,c,d] of LINES){
+    let mc=0,oc=0;
+    for(const i of [a,c,d]){ if(b[i]===me)mc++; else if(b[i]===opp)oc++; }
+    if(mc&&oc) continue;
+    if(mc===2) s+=26; if(oc===2) s-=30;
+    if(mc===1) s+=7;  if(oc===1) s-=8;
+  }
+  if(b[4]===me) s+=10; else if(b[4]===opp) s-=10;
+  return s;
+}
+function evaluate(s,me){
+  const opp=me===X?O:X;
+  const mw=simWin(s.macro.map(v=>v>0?v:0));
+  if(mw===me) return 100000;
+  if(mw===opp) return -100000;
+  let sc=0;
+  for(let i=0;i<9;i++){
+    if(s.macro[i]===me) sc+=700;
+    else if(s.macro[i]===opp) sc-=700;
+    else sc+=evalMini(s.cells[i],me)*2.2;
+  }
+  const mapped=s.macro.map(v=>v>0?v:0);
+  for(const [a,c,d] of LINES){
+    let mc=0,oc=0;
+    for(const i of [a,c,d]){
+      if(mapped[i]===me)mc++; else if(mapped[i]===opp)oc++;
+    }
+    if(mc&&oc) continue;
+    if(mc===2) sc+=1200; if(oc===2) sc-=1400;
+    if(mc===1) sc+=180;  if(oc===1) sc-=210;
+  }
+  if(mapped[4]===me) sc+=260; else if(mapped[4]===opp) sc-=260;
+  return sc;
+}
+function minimax(s,d,alpha,beta,me){
+  const acts=legalActions(s);
+  if(d<=0||!acts.length||s.phase==='gameOver') return {sc:evaluate(s,me)};
+  const maximizing=(s.phase==='chooseMacro') ? s.chooserPlayer===me : s.currentPlayer===me;
+  shuffle(acts);
+  let best=acts[0], bestSc=maximizing?-Infinity:Infinity;
+  for(const a of acts){
+    const r=minimax(apply(s,a),d-1,alpha,beta,me).sc;
+    if(maximizing){ if(r>bestSc){bestSc=r;best=a;} alpha=Math.max(alpha,r); }
+    else{ if(r<bestSc){bestSc=r;best=a;} beta=Math.min(beta,r); }
+    if(beta<=alpha) break;
+  }
+  return {sc:bestSc, a:best};
+}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[arr[i],arr[j]]=[arr[j],arr[i]];} return arr;}
+
+function turnPlayer(){
+  if(phase==='chooseMacro') return chooserPlayer;
+  if(phase==='firstCell'||phase==='playBoard') return currentPlayer;
+  return null;
+}
+function isAI(p){return document.getElementById(p===X?'modeX':'modeO').value==='ai';}
+function depthOf(p){return +document.getElementById(p===X?'depthX':'depthO').value;}
+function speedMs(){
+  const v=+document.getElementById('speed').value;
+  return 1500 - (v-1)*(1400/19);
+}
+
+function scheduleAI(){
+  clearTimeout(aiTimer);
+  const p=turnPlayer();
+  if(!p||phase==='gameOver'||!isAI(p)) return;
+  thinking=true;
+  aiTimer=setTimeout(()=>{
+    thinking=false;
+    if(phase==='gameOver') return;
+    const me=turnPlayer();
+    if(!me||!isAI(me)) return;
+    const s={macro,cells,currentPlayer,chooserPlayer,phase,activeMacro,miniFirst};
+    const acts=legalActions(s);
+    if(!acts.length) return;
+    let a;
+    if(depthOf(me)<=1) a=acts[Math.random()*acts.length|0];
+    else a=(minimax(s,depthOf(me),-Infinity,Infinity,me).a)||acts[0];
+    if(a.t==='M') chooseMacro(a.m); else makeMove(a.m,a.c);
+  }, speedMs());
+}
+
+/* ---------- صداها ---------- */
+let AC=null;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume(); return AC;}
+function tone(f,dur,type='sine',vol=.08,slide=0){
+  try{
+    const c=ac(),o=c.createOscillator(),g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,c.currentTime);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),c.currentTime+dur);
+    g.gain.setValueAtTime(vol,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+dur);
+    o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+dur);
+  }catch(e){}
+}
+function noiseBurst(dur,vol){
+  try{
+    const c=ac(), len=c.sampleRate*dur;
+    const buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5);
+    const src=c.createBufferSource(); src.buffer=buf;
+    const g=c.createGain(); g.gain.value=vol;
+    const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=300;
+    src.connect(f).connect(g).connect(c.destination); src.start();
+  }catch(e){}
+}
+function soundPlace(p){ p===X ? tone(560,.07,'triangle',.07,150) : tone(430,.07,'triangle',.07,-110); }
+function soundSlam(){
+  tone(85,.3,'sine',.4,-55);
+  tone(50,.4,'sine',.3,-25);
+  noiseBurst(.2,.6);
+}
+function soundWin(){
+  tone(520,.12,'triangle',.12); setTimeout(()=>tone(660,.12,'triangle',.12),120);
+  setTimeout(()=>tone(840,.3,'triangle',.14),240);
+  tone(90,.3,'sine',.3,-50); noiseBurst(.15,.4);
+}
+
+document.getElementById('stepBtn').addEventListener('click',()=>{
+  if(phase==='gameOver') return;
+  clearTimeout(aiTimer);
+  const p=turnPlayer(); if(!p) return;
+  const s={macro,cells,currentPlayer,chooserPlayer,phase,activeMacro,miniFirst};
+  const acts=legalActions(s); if(!acts.length) return;
+  let a;
+  if(depthOf(p)<=1) a=acts[Math.random()*acts.length|0];
+  else a=(minimax(s,depthOf(p),-Infinity,Infinity,p).a)||acts[0];
+  if(a.t==='M') chooseMacro(a.m); else makeMove(a.m,a.c);
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  score={x:0,o:0,rd:0};
+  document.getElementById('scX').textContent=0;
+  document.getElementById('scO').textContent=0;
+  document.getElementById('scRD').textContent=0;
+  newGame();
+});
+
+['modeX','modeO'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>{
+    scheduleAI();
+    updateStatus();
+  });
+});
+
+newGame();
+</script>
+</body>
+</html>
