@@ -94,6 +94,16 @@ svg.mark-o{stroke:var(--o); filter:drop-shadow(0 0 5px rgba(0,234,255,.6));}
 .dialog{width:min(90vw,420px); background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15);
   border-radius:18px; padding:20px; text-align:center;}
 .dialog h2{margin:0 0 10px; font-size:1.5rem; font-weight:900;}
+
+/* استایل کانتینرهای تبلیغاتی یکتانت */
+.ad-container {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+  width: min(100%, 860px);
+  flex-wrap: wrap;
+}
 </style>
 </head>
 <body>
@@ -125,11 +135,39 @@ svg.mark-o{stroke:var(--o); filter:drop-shadow(0 0 5px rgba(0,234,255,.6));}
 <div id="status"></div>
 <div id="board"></div>
 
+<!-- جایگاه‌های بنری یکتانت -->
+<div class="ad-container">
+  <div class="yn-bnr" id="ynpos-21074"></div>
+  <div class="yn-bnr" id="ynpos-21075"></div>
+</div>
+
 <div class="hint">
-  برای شروع نوبت، هر جای خانه‌ی بزرگ دلخواه را لمس کنید تا انتخاب شود.<br>©️ATNSAD
+  برای شروع نوبت، هر خانه‌ی بزرگ دلخواه را لمس کنید تا انتخاب شود.<br>©️ATNSAD
 </div>
 
 <div id="overlay"><div class="dialog"><h2 id="ovTitle"></h2><p id="ovText"></p><button onclick="document.getElementById('overlay').style.display='none'">بستن</button></div></div>
+
+<!-- اسکریپت لودکننده یکتانت -->
+<script>
+        !function(e,t,n){
+            e.yektanetAnalyticsObject=n,
+            e[n]=e[n]||function(){e[n].q.push(arguments)},
+            e[n].q=e[n].q||[];
+            var a=t.getElementsByTagName("head")[0],
+                r=new Date,
+                c="https://cdn.yektanet.com/superscript-v2/4jtZkMmw/native-48755/yn_pub.js?v="
+                    +r.getFullYear().toString()+"0"+r.getMonth()+"0"+r.getDate()+"0"+r.getHours(),
+                s=t.createElement("link");
+            s.rel="preload",
+            s.as="script",
+            s.href=c,
+            a.appendChild(s);
+            var l=t.createElement("script");
+            l.async=!0,
+            l.src=c,
+            a.appendChild(l);
+        }(window,document,"yektanet");
+</script>
 
 <script>
 const X=1, O=2;
@@ -171,12 +209,10 @@ function buildBoard(){
     for(let c=0;c<9;c++){
       const cd=document.createElement('div'); cd.className='cell';
       cd.dataset.macro=m; cd.dataset.cell=c;
-      // استفاده از pointerup برای بدون لگ بودن روی موبایل
       cd.addEventListener('pointerup', onCellPointerUp);
       md.appendChild(cd);
     }
 
-    // لایه اختصاصی و شفاف روی کل صفحه بزرگ جهت دریافت قطعی لمس در موبایل
     const hb=document.createElement('div');
     hb.className='macro-hitbox';
     hb.dataset.macro=m;
